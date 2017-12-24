@@ -3,89 +3,14 @@
 # TODO Make code generic
 # TODO A way to substitute names, e.g. Bob instead of Lizzy
 # TODO Handle contractions like "I'm"
-# TODO Find a better stemmer - Lancaster?
 
-from nltk.tree import Tree
-import trigram
-import nltk
 import argparse
 import sys
+import pattern.en # parser
+import pattern.vector # stemmer
+import inflect
 
-# str = ''
-#
-#
-# def append_str(x):
-#     global str
-#     str = str + ' ' + x
-
-
-lone_her = 0
-
-
-def traverseTree(tree, func=lambda x: x):
-    global lone_her
-    # print("tree:", tree)
-    for subtree in tree:
-        if type(subtree) == Tree:
-            if len(subtree) == 1 and subtree[0][0].lower() == 'her':
-                #print("lone 'her'")
-                lone_her = lone_her + 1
-                traverseTree(subtree, func)
-            else:
-                traverseTree(subtree, func)
-        elif type(subtree) == tuple:
-            func(subtree[0])
-        else:
-            #print(type(subtree))
-            func(subtree)
-
-
-# Now to reconstruct the text from the tree
-# 1. read in yaml and construct the rules
-import re
-re.match("[Hh]er", "her")
-rules_old = {
-    # Regex to describe word
-    ("[Hh]er", "PRP"): {
-        "replacement": "him"
-    },
-    ("Her", "PRP"): {
-        "replacement": "Him"
-    },
-    ("her", "PRP$"): {
-        "replacement": "his"
-    },
-    ("Her", "PRP$"): {
-        "replacement": "His"
-    },
-    ("She", "PRP"): {
-        "replacement": "He"
-    },
-    ("she", "PRP"): {
-        "replacement": "he"
-    },
-    ("him", "PRP"): {
-        "replacement": "her"
-    },
-    ("Him", "PRP"): {
-        "replacement": "Her"
-    },
-    ("He", "PRP"): {
-        "replacement": "She"
-    },
-    ("he", "PRP"): {
-        "replacement": "she"
-    },
-    ("his", "PRP$"): {
-        "replacement": "her"
-    },
-    ("His", "PRP$"): {
-        "replacement": "Her"
-    },
-
-}
-
-rules_stem = {
+DEFAULT_RULES = {
     "her": {
         "parts_of_speech": {
             "PRP": {
@@ -137,114 +62,99 @@ rules_stem = {
     "gentleman": {"parts_of_speech": {"*": {"replacement": "lady"}}},
     "gentlemen": {"parts_of_speech": {"*": {"replacement": "ladies"}}},
     "ladies": {"parts_of_speech": {"*": {"replacement": "gentlemen"}}},
-    "lord": {"parts_of_speech": {"NNP": {"replacement": "lady"}}}
+    "lord": {"parts_of_speech": {"NNP": {"replacement": "lady"}}},
+    "mamma": {"parts_of_speech": {"NNP": {"replacement": "pappa"}}}
 }
 
-# TODO make configurable
-stemmer = nltk.PorterStemmer()
-import inflect
-inflect_engine = inflect.engine()
 
-# def get_replacement_rule(tpl, rules):
-#     # Simplest:
-#     return tpl in rules
-#     # # Stem:
-#     global stemmer
-#     stemword = stemmer.stem(tpl[0])
-#     return rules[stemword] if stemword in rules else None
-#     # (p.stem(tpl[0]), tpl[1])
-#     # re.match('^{0}$'.format())
+class PatternGenderSwapper():
+    def __init__(self, replacement_rules=DEFAULT_RULES, preprocess=None, postprocess=None):
+        self.replacement_rules = replacement_rules
+        self.preprocess = preprocess
+        self.postprocess = postprocess
+        self.inflect_engine = inflect.engine()
 
-def replace_word(tpl, rules):
-    (word, pos) = tpl
+    def get_proper_names(self, stream):
+        proper_names=set()
+        while True:
+            line = stream.readline()
+            if self.preprocess:
+                line = self.preprocess(line)
+            if not line:
+                break
+            proper_names = proper_names.union(set(self._proper_names(line, pattern.en.parsetree(line))))
 
-    # Get the rule
-    if word in rules:
-        rule = rules[word.lower()]
-    else:
-        global stemmer
-        stem = stemmer.stem(word)
+        return proper_names
 
-        if stem in rules:
-            rule = rules[stem]
-        else:
-            return word
+    def _proper_names(self, original_text, pattern_tree):
+        pn = []
+        for s in pattern_tree:
+            for t in s.chunked():
+                for w in t:
+                    if w.pos=="NNP":
+                        pn.append((w.string, t.string, s.string))
 
-
-    posrule = rule["parts_of_speech"].get(pos, rule["parts_of_speech"].get("*"))
-    if not posrule:
-        # Nothing to do
-        #print("Warning: No posrule for {0}".format(tpl))
-        return word
-
-    word2 = posrule["replacement"].title() if word[:1].isupper() else posrule["replacement"]
-    if pos=="NNS":
-        # The word was originally plural
-        word2 = inflect_engine.plural(word2)
-
-    return word2
-
-def replace_text(tree, rules):
-    for subtree in tree:
-        if type(subtree) == Tree:
-            replace_text(subtree, rules)
-
-
-def reflatten_text(tree, rules, text=''):
-    # print("tree:", tree)
-    for subtree in tree:
-        # If a tree, does it have a single leaf?
-        if type(subtree) == Tree:
-            text = reflatten_text(subtree, rules, text)
-        elif type(subtree)==tuple:
-            if subtree[0]=="''":
-                # Remove space before end quote
-                text = text.rstrip(" ")+'" '
-            elif subtree[0]=="``":
-                # Do not add space after start quote
-                text = text + '"'
-            elif subtree[0]==subtree[1] or subtree[1] in [".", ":", ","]: # end of sentence punctuation
-                # add punctuation with no extra space
-                text = text.rstrip(" ") + subtree[0]+ ' '
-            else:
-                text = text + replace_word(subtree, rules) + ' '
-        else:
-            pass
-            # print(type(subtree))
-            # print(subtree)
-    return text
-
-class GenderSwapper():
-    def __init__(self, tokenize,tag, chunk, line_delimiter="\n"):
-        self.tokenize = tokenize
-        self.tag = tag
-        self.chunk = chunk
-
+        return pn
 
     def swap_gender(self, stream):
         while True:
             line = stream.readline()
             if not line:
                 break
-            yield reflatten_text(
-                self.chunk(
-                    self.tag(
-                        self.tokenize(line)
-                    )
-                ),
-            rules_stem)
+            line = self.preprocess(line) if self.preprocess else line
+            line = self.replace_in_text(line, pattern.en.parsetree(line))
+            line = self.postprocess(line) if self.postprocess else line
+            yield line
 
-#todo rename, stream
+    def replace_in_text(self, original_text, pattern_tree):
+        text = ""
+        index_in_original = 0
+
+        for pattern_sentence in pattern_tree:
+            for word in pattern_sentence:
+                #print "'{0}' ({1})".format(word.string, word.pos)
+                start_index = original_text.find(word.string, index_in_original)
+                preceding_whitespace = original_text[index_in_original:start_index]
+                index_in_original = start_index+len(word.string)
+                text = text + preceding_whitespace + self.replace_word((word.string, word.pos))
+        remaining_whitespace = original_text[index_in_original:len(original_text)]
+        text = text + remaining_whitespace
+        return text.rstrip("\n")
+
+    def replace_word(self, tpl):
+        (word, pos) = tpl
+        s_word = pattern.en.singularize(word) if pos == "NNS" else word
+
+        # Get the rule
+        if word in self.replacement_rules:
+            rule = self.replacement_rules[s_word.lower()]
+        else:
+            stem = pattern.vector.stem(word, stemmer=pattern.vector.LEMMA).lower()
+
+            if stem in self.replacement_rules:
+                rule = self.replacement_rules[stem]
+            else:
+                return word
+
+        posrule = rule["parts_of_speech"].get(pos, rule["parts_of_speech"].get("*"))
+        if not posrule:
+            # Nothing to do
+            #print("Warning: No posrule for {0}".format(tpl))
+            return word
+
+        word2 = posrule["replacement"].title() if word[:1].isupper() else posrule["replacement"]
+        if pos=="NNS":
+            # The word was originally plural
+            word2 = pattern.en.pluralize(word2)
+
+        return word2
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", help="Text file to gender-swap")
     args = parser.parse_args()
 
-    #print(dir(args))
-    swapper = GenderSwapper(tokenize=lambda line: nltk.word_tokenize(line),
-                            tag=lambda tok_line: nltk.pos_tag(tok_line),
-                            chunk=lambda line: trigram.trigram_chunker.parse(line))
-
+    swapper = PatternGenderSwapper()
     close_fp = False
 
     if not args.file:
@@ -259,48 +169,6 @@ def main():
     if close_fp:
         fp.close()
 
-def pp(path):
-    pp_text = open(path, 'r').read()
-    # pp_tokens = nltk.word_tokenize(pp_text)
-    # pp_tagged = nltk.pos_tag(pp_tokens)
-    # pp_chunked = trigram.trigram_chunker.parse(pp_tagged)
-
-    # Now to reconstruct the text from the tree
-    global pp_text_split
-    global pp_tokens_split
-    global pp_tagged_split
-    global pp_chunked_split
-
-    #
-    pp_text_split = pp_text.split("\n")
-    pp_tokens_split = [nltk.word_tokenize(line) for line in pp_text_split]
-    pp_tagged_split = [nltk.pos_tag(tokenized_line) for tokenized_line in pp_tokens_split]
-    pp_chunked_split = [trigram.trigram_chunker.parse(line) for line in pp_tagged_split]
-
-    return pp_chunked_split
-
-def do_replacement():
-    """
-    Call this after pp()
-    :return: 
-    """
-    replaced = [reflatten_text(chunk, rules_stem) for chunk in pp_chunked_split]
-    with open("Ungendered.txt", "w") as f:
-        f.write("\n".join(replaced))
-
-
-    proper_nouns = [[tf[i][0] if i == 0 else "{0} {1}".format(tf[i-1][0], tf[i][0])  for i in range(0, len(tf)) if (i==0 and tf[i][1]=="NNP" and tf[i+1][1]!="NNP") or (i>0 and tf[i-1][1]=="NNP" and tf[i][1]=="NNP")] for tf in [t.flatten() for t in main.pp_chunked_split]]
-    proper_nouns_flat = [item for sublist in proper_nouns for item in sublist]
-    with open("ProperNames.txt", "w") as f:
-        f.write("\n".join(sorted(set(proper_nouns_flat))))
-
 if __name__ == "__main__":
     main()
 
-
-#readline.get_current_history_length()
-# readline.get_history_item()
-#import readline
-#with open("History.txt", "w") as f:
-#    f.write("\n".join([readline.get_history_item() for i in range(0, readline.get_current_history_length())])+ "\n")
-# proper_nouns = [[tf[i][0] if i == 0 else "{0} {1}".format(tf[i-1][0], tf[i][0])  for i in range(0, len(tf)) if (i==0 and tf[i][1]=="NNP" and tf[i+1][1]!="NNP") or (i>0 and tf[i-1][1]=="NNP" and tf[i][1]=="NNP")] for tf in [t.flatten() for t in pp.pp_chunked_split]]
