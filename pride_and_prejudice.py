@@ -38,6 +38,9 @@ def preprocess(line):
     """
     return line.replace("--", " -- ")
 
+def postprocess_word(word):
+    return name_replacements.get(word, word)
+
 def postprocess(line):
     for k, v in name_replacements.iteritems():
         line = line.replace(k, v)
@@ -50,7 +53,7 @@ def main():
     args = parser.parse_args()
 
     swapper = PatternGenderSwapper(preprocess=lambda x: preprocess(x),
-                                   postprocess=lambda y: postprocess(y))
+                                   postprocess_word=lambda y: postprocess_word(y))
     close_fp = False
 
     if not args.file:

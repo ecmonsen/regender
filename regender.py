@@ -53,6 +53,7 @@ DEFAULT_RULES = {
     "mr.": {"parts_of_speech": {"*": {"replacement": "ms."}}},
     "mrs.": {"parts_of_speech": {"*": {"replacement": "mr."}}},
     "ms.": {"parts_of_speech": {"*": {"replacement": "mr."}}},
+    "miss": {"parts_of_speech": {"NNP": {"replacement": "mr."},"NN": {"replacement": "mr."}}},
     "sir": {"parts_of_speech": {"*": {"replacement": "madam"}}},
     "madam": {"parts_of_speech": {"*": {"replacement": "sir"}}},
     "ma'am": {"parts_of_speech": {"*": {"replacement": "sir"}}},
@@ -63,15 +64,17 @@ DEFAULT_RULES = {
     "gentlemen": {"parts_of_speech": {"*": {"replacement": "ladies"}}},
     "ladies": {"parts_of_speech": {"*": {"replacement": "gentlemen"}}},
     "lord": {"parts_of_speech": {"NNP": {"replacement": "lady"}}},
-    "mamma": {"parts_of_speech": {"NNP": {"replacement": "pappa"}}}
+    "mamma": {"parts_of_speech": {"*": {"replacement": "pappa"}}}
 }
 
 
 class PatternGenderSwapper():
-    def __init__(self, replacement_rules=DEFAULT_RULES, preprocess=None, postprocess=None):
+    def __init__(self, replacement_rules=DEFAULT_RULES, preprocess=None, postprocess=None,
+                 postprocess_word=None):
         self.replacement_rules = replacement_rules
         self.preprocess = preprocess
         self.postprocess = postprocess
+        self.postprocess_word = postprocess_word
         self.inflect_engine = inflect.engine()
 
     def get_proper_names(self, stream):
@@ -123,18 +126,18 @@ class PatternGenderSwapper():
 
     def replace_word(self, tpl):
         (word, pos) = tpl
-        s_word = pattern.en.singularize(word) if pos == "NNS" else word
+        s_word = (pattern.en.singularize(word) if pos == "NNS" else word).lower()
 
         # Get the rule
-        if word in self.replacement_rules:
-            rule = self.replacement_rules[s_word.lower()]
+        if s_word in self.replacement_rules:
+            rule = self.replacement_rules[s_word]
         else:
             stem = pattern.vector.stem(word, stemmer=pattern.vector.LEMMA).lower()
 
             if stem in self.replacement_rules:
                 rule = self.replacement_rules[stem]
             else:
-                return word
+                return self.postprocess_word(word) if self.postprocess_word else word
 
         posrule = rule["parts_of_speech"].get(pos, rule["parts_of_speech"].get("*"))
         if not posrule:
@@ -147,7 +150,7 @@ class PatternGenderSwapper():
             # The word was originally plural
             word2 = pattern.en.pluralize(word2)
 
-        return word2
+        return self.postprocess_word(word2) if self.postprocess_word else word2
 
 def main():
     parser = argparse.ArgumentParser()
