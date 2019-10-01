@@ -1,3 +1,8 @@
+# One-off script to gender-swap "Pride and Prejudice" by Jane Austen.
+# What makes it specific to that text is the replacement of P&P character
+# names with hand-selected, gender-swapped names that were fairly popular,
+# according to name indexes, in the late 1800s when Austen was writing.
+
 import argparse
 from regender import PatternGenderSwapper
 import sys
