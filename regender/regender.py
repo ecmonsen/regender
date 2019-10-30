@@ -13,24 +13,21 @@ import io
 DEFAULT_RULES = {
     "her": {
         "parts_of_speech": {
-            "PRP": {
-                "replacement": "him"
-            },
-            "NN": {
-                "replacement": "him"
-            },
-            "PRP$" : {
-                "replacement": "his"
-            },
-            "NNP": {
-                "replacement": "his"
-            }
+            "PRP": { "replacement": "him" },
+            "NN": { "replacement": "him" },
+            "PRP$" : { "replacement": "his" },
+            "NNP": { "replacement": "his" }
         }
     },
     "she": {"parts_of_speech": {"*": {"replacement": "he"}}},
     "he": {"parts_of_speech": {"*": {"replacement": "she"}}},
     "him": {"parts_of_speech": {"*": {"replacement": "her"}}},
     "his": {"parts_of_speech": {"*": {"replacement": "her"}}},
+    "miss": {"parts_of_speech": {
+            "NNP": {"replacement": "mr."},
+            "NN": {"replacement": "mr."}
+        }
+    },
     "hers": {"parts_of_speech": {"*": {"replacement": "his"}}},
     "herself": {"parts_of_speech": {"*": {"replacement": "himself"}}},
     "himself": {"parts_of_speech": {"*": {"replacement": "herself"}}},
@@ -53,7 +50,6 @@ DEFAULT_RULES = {
     "mr.": {"parts_of_speech": {"*": {"replacement": "ms."}}},
     "mrs.": {"parts_of_speech": {"*": {"replacement": "mr."}}},
     "ms.": {"parts_of_speech": {"*": {"replacement": "mr."}}},
-    "miss": {"parts_of_speech": {"NNP": {"replacement": "mr."},"NN": {"replacement": "mr."}}},
     "sir": {"parts_of_speech": {"*": {"replacement": "madam"}}},
     "madam": {"parts_of_speech": {"*": {"replacement": "sir"}}},
     "ma'am": {"parts_of_speech": {"*": {"replacement": "sir"}}},
@@ -64,7 +60,9 @@ DEFAULT_RULES = {
     "gentlemen": {"parts_of_speech": {"*": {"replacement": "ladies"}}},
     "ladies": {"parts_of_speech": {"*": {"replacement": "gentlemen"}}},
     "lord": {"parts_of_speech": {"NNP": {"replacement": "lady"}}},
-    "mamma": {"parts_of_speech": {"*": {"replacement": "pappa"}}}
+    "mamma": {"parts_of_speech": {"*": {"replacement": "pappa"}}},
+    "female": {"parts_of_speech": {"*": {"replacement": "male"}}},
+    "male": {"parts_of_speech": {"*": {"replacement": "female"}}}
 }
 
 
