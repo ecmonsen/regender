@@ -6,6 +6,7 @@
 import argparse
 from regender import PatternGenderSwapper
 import sys
+import io
 
 name_replacements = {
     "William": "Willa",
@@ -64,11 +65,11 @@ def main():
     if not args.file:
         fp = sys.stdin
     else:
-        fp = open(args.file, 'r')
+        fp = io.open(args.file, 'r', encoding='utf-8 sig')
         close_fp = True
 
     for line in swapper.swap_gender(fp):
-        print(line)
+        print(line.encode('utf-8'))
 
     if close_fp:
         fp.close()
