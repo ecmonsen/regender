@@ -40,3 +40,17 @@ Or, peruse the code.
 
 Regendered, copyright-free texts can be found in the [regendered_ebooks](https://github.com/ecmonsen/regendered_ebooks) repo.
 
+### Create Python egg
+To create a Python egg of this project:
+
+First install setuptools if not already installed:
+
+```bash
+pip install setuptools
+```
+
+Then create the egg:
+
+```bash
+python setup.py bdist_egg
+```
