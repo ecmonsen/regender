@@ -11,6 +11,14 @@ System requirements:
 * Python 3 with pip
 * virtualenv
 
+Clone the [gendered words](https://github.com/ecmonsen/gendered_words) dictionary in a sibling directory to this one (to get the gendered_words.json file needed for translation):
+
+
+```bash
+cd ..
+git clone git@github.com:ecmonsen/gendered_words.git
+```
+
 Create a Python 3 virtualenv and install requirements:
 
 ```bash
@@ -20,7 +28,8 @@ pip install -r requirements.txt
 ```
 
 Regender a text:
-```
+
+```bash
 python regender/regender.py -f [PATH_TO_FILE]
 ```
 
