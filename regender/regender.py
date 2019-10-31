@@ -10,61 +10,8 @@ import pattern.en # parser
 import pattern.vector # stemmer
 import inflect
 import io
-DEFAULT_RULES = {
-    "her": {
-        "parts_of_speech": {
-            "PRP": { "replacement": "him" },
-            "NN": { "replacement": "him" },
-            "PRP$" : { "replacement": "his" },
-            "NNP": { "replacement": "his" }
-        }
-    },
-    "she": {"parts_of_speech": {"*": {"replacement": "he"}}},
-    "he": {"parts_of_speech": {"*": {"replacement": "she"}}},
-    "him": {"parts_of_speech": {"*": {"replacement": "her"}}},
-    "his": {"parts_of_speech": {"*": {"replacement": "her"}}},
-    "miss": {"parts_of_speech": {
-            "NNP": {"replacement": "mr."},
-            "NN": {"replacement": "mr."}
-        }
-    },
-    "hers": {"parts_of_speech": {"*": {"replacement": "his"}}},
-    "herself": {"parts_of_speech": {"*": {"replacement": "himself"}}},
-    "himself": {"parts_of_speech": {"*": {"replacement": "herself"}}},
-    "niece": {"parts_of_speech": {"*": {"replacement": "nephew"}}},
-    "nephew": {"parts_of_speech": {"*": {"replacement": "niece"}}},
-    "aunt": {"parts_of_speech": {"*": {"replacement": "uncle"}}},
-    "uncle": {"parts_of_speech": {"*": {"replacement": "aunt"}}},
-    "mother": {"parts_of_speech": {"*": {"replacement": "father"}}},
-    "father": {"parts_of_speech": {"*": {"replacement": "mother"}}},
-    "brother": {"parts_of_speech": {"*": {"replacement": "sister"}}},
-    "sister": {"parts_of_speech": {"*": {"replacement": "brother"}}},
-    "daughter": {"parts_of_speech": {"*": {"replacement": "son"}}},
-    "son": {"parts_of_speech": {"*": {"replacement": "daughter"}}},
-    "woman": {"parts_of_speech": {"*": {"replacement": "man"}}},
-    "man": {"parts_of_speech": {"*": {"replacement": "woman"}}},
-    "girl": {"parts_of_speech": {"*": {"replacement": "boy"}}},
-    "boy": {"parts_of_speech": {"*": {"replacement": "girl"}}},
-    "wife": {"parts_of_speech": {"*": {"replacement": "husband"}}},
-    "husband": {"parts_of_speech": {"*": {"replacement": "wife"}}},
-    "mr.": {"parts_of_speech": {"*": {"replacement": "ms."}}},
-    "mrs.": {"parts_of_speech": {"*": {"replacement": "mr."}}},
-    "ms.": {"parts_of_speech": {"*": {"replacement": "mr."}}},
-    "sir": {"parts_of_speech": {"*": {"replacement": "madam"}}},
-    "madam": {"parts_of_speech": {"*": {"replacement": "sir"}}},
-    "ma'am": {"parts_of_speech": {"*": {"replacement": "sir"}}},
-    "women": {"parts_of_speech": {"*": {"replacement": "men"}}},
-    "men": {"parts_of_speech": {"*": {"replacement": "women"}}},
-    "lady": {"parts_of_speech": {"NNP": {"replacement": "lord"}, "*": {"replacement": "gentleman"}}},
-    "gentleman": {"parts_of_speech": {"*": {"replacement": "lady"}}},
-    "gentlemen": {"parts_of_speech": {"*": {"replacement": "ladies"}}},
-    "ladies": {"parts_of_speech": {"*": {"replacement": "gentlemen"}}},
-    "lord": {"parts_of_speech": {"NNP": {"replacement": "lady"}}},
-    "mamma": {"parts_of_speech": {"*": {"replacement": "pappa"}}},
-    "female": {"parts_of_speech": {"*": {"replacement": "male"}}},
-    "male": {"parts_of_speech": {"*": {"replacement": "female"}}}
-}
-
+from load_gendered_words import  load_gendered_words
+DEFAULT_RULES = load_gendered_words()
 
 class PatternGenderSwapper():
     """
